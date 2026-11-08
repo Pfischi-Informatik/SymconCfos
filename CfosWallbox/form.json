@@ -1,0 +1,23 @@
+{
+    "elements": [
+        { "type": "ValidationTextBox", "name": "Host", "caption": "IP-Adresse des cFos Charging Managers" },
+        { "type": "Select", "name": "DevId", "caption": "Ladepunkt", "options": [{ "caption": "(erst Host speichern)", "value": "" }] },
+        { "type": "PasswordTextBox", "name": "Password", "caption": "Admin-Passwort" },
+        { "type": "NumberSpinner", "name": "Interval", "caption": "Abfrageintervall", "suffix": "s", "minimum": 2, "maximum": 3600 },
+        { "type": "NumberSpinner", "name": "MaxCurrent", "caption": "Maximaler Strom (0 = Wert der Box)", "suffix": "A", "minimum": 0, "maximum": 63 },
+        { "type": "NumberSpinner", "name": "Voltage", "caption": "Nennspannung", "suffix": "V", "digits": 1, "minimum": 180, "maximum": 260 },
+        { "type": "Select", "name": "DefaultPhases", "caption": "Phasen, solange die Box keine meldet", "options": [{ "caption": "1", "value": 1 }, { "caption": "3", "value": 3 }] },
+        { "type": "CheckBox", "name": "PhaseSwitch", "caption": "Phasen durch das Modul umschalten (nur eingebaute Box)" },
+        { "type": "NumberSpinner", "name": "PhaseHold", "caption": "Mindestzeit zwischen Umschaltungen", "suffix": "s", "minimum": 120, "maximum": 86400 }
+    ],
+    "actions": [
+        { "type": "Button", "caption": "Jetzt aktualisieren", "onClick": "CFOS_Update($id);" }
+    ],
+    "status": [
+        { "code": 102, "icon": "active", "caption": "Verbunden" },
+        { "code": 104, "icon": "inactive", "caption": "Host oder Ladepunkt fehlt" },
+        { "code": 201, "icon": "error", "caption": "Charging Manager nicht erreichbar" },
+        { "code": 202, "icon": "error", "caption": "Ladepunkt nicht gefunden" },
+        { "code": 203, "icon": "error", "caption": "Befehl abgelehnt (Passwort pruefen)" }
+    ]
+}

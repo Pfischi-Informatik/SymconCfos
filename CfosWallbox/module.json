@@ -1,0 +1,12 @@
+{
+    "id": "{EE29E9F7-83F8-4CB4-9E17-CC1E6B460F10}",
+    "name": "cFos Wallbox",
+    "type": 3,
+    "vendor": "cFos",
+    "aliases": ["cFos Power Brain", "Charging Manager"],
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "CFOS",
+    "url": "https://github.com/Pfischi-Informatik/SymconCfos"
+}

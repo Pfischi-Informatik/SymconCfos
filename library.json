@@ -1,0 +1,10 @@
+{
+    "id": "{7BCAC862-32EE-42B9-A1CD-E0879DE5E45F}",
+    "author": "Dominik Pfister",
+    "name": "cFos Wallbox",
+    "url": "https://github.com/Pfischi-Informatik/SymconCfos",
+    "compatibility": { "version": "7.1" },
+    "version": "1.0",
+    "build": 1,
+    "date": 0
+}
