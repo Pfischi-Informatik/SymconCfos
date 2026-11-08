@@ -139,6 +139,8 @@ assert($b->take() === ['override_device&dev_id=E1&flags=c&mamps=6000']);
 
 // Unter Minimum pausieren
 $b->RequestAction('TargetPower', 1000);
+assert($b->take() === [], 'Haltezeit gegen Takten');
+$b->clock += 60; $b->Update();
 assert($b->take() === ['override_device&dev_id=E1&flags=C']);
 
 // Sofort mit kWh-Ziel, Abstecken
@@ -167,7 +169,15 @@ $b->device = device(2, 1000000, 0, 'M1.current');
 $b->RequestAction('ImmediateCurrent', 32);
 $b->take();
 $b->RequestAction('Mode', CfosLogic::MODE_IMMEDIATE);
-assert($b->take() === ['override_device&dev_id=E1&flags=c&mamps=32000']);
+assert($b->take() === ['override_device&dev_id=E1&flags=c&mamps=16000'], 'Formel: nicht 63 A');
+
+// Fremdgeraet ohne Mindeststrom, Summenlimit als Formel
+$b = box();
+$b->params = ['max_total_evse_current' => 'M1.current'];
+$b->device = device(2, 1000000, 1);
+unset($b->device['min_charging_cur']);
+@$b->RequestAction('TargetPower', 700);
+assert(!in_array('override_device&dev_id=E1&flags=c&mamps=1000', $b->take(), true), 'nie unter 6 A');
 
 // Summenlimit nur bei Aenderung
 $b = box();

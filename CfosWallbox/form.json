@@ -8,7 +8,8 @@
         { "type": "NumberSpinner", "name": "Voltage", "caption": "Nennspannung", "suffix": "V", "digits": 1, "minimum": 180, "maximum": 260 },
         { "type": "Select", "name": "DefaultPhases", "caption": "Phasen, solange die Box keine meldet", "options": [{ "caption": "1", "value": 1 }, { "caption": "3", "value": 3 }] },
         { "type": "CheckBox", "name": "PhaseSwitch", "caption": "Phasen durch das Modul umschalten (nur eingebaute Box)" },
-        { "type": "NumberSpinner", "name": "PhaseHold", "caption": "Mindestzeit zwischen Umschaltungen", "suffix": "s", "minimum": 120, "maximum": 86400 }
+        { "type": "NumberSpinner", "name": "PhaseHold", "caption": "Mindestzeit zwischen Umschaltungen", "suffix": "s", "minimum": 120, "maximum": 86400 },
+        { "type": "NumberSpinner", "name": "StartStopHold", "caption": "Mindestzeit zwischen Start und Stopp im Ueberschuss", "suffix": "s", "minimum": 0, "maximum": 3600 }
     ],
     "actions": [
         { "type": "Button", "caption": "Jetzt aktualisieren", "onClick": "CFOS_Update($id);" }

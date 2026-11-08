@@ -26,6 +26,7 @@ class cFosWallbox extends IPSModule
         $this->RegisterPropertyInteger('DefaultPhases', 3);
         $this->RegisterPropertyBoolean('PhaseSwitch', false);
         $this->RegisterPropertyInteger('PhaseHold', 600);
+        $this->RegisterPropertyInteger('StartStopHold', 120);
 
         $this->RegisterAttributeBoolean('Initialized', false);
         $this->RegisterAttributeString('BaseKey', '');
@@ -35,6 +36,7 @@ class cFosWallbox extends IPSModule
         $this->RegisterAttributeInteger('LastState', 0);
         $this->RegisterAttributeInteger('LastCommand', -1);
         $this->RegisterAttributeInteger('LastSent', 0);
+        $this->RegisterAttributeInteger('LastChange', 0);
         $this->RegisterAttributeInteger('LastPhases', 0);
         $this->RegisterAttributeInteger('PhaseTarget', 0);
         $this->RegisterAttributeInteger('LastPhaseSwitch', 0);
@@ -188,7 +190,7 @@ class cFosWallbox extends IPSModule
         $this->SetValue('EnergySession', round($energy['sessionWh'] / 1000, 3));
         $this->SetValue('EnergyToday', round($energy['todayWh'] / 1000, 3));
         $this->SetValue('EnergyTotal', round($total / 1000, 3));
-        if (isset($params['max_total_evse_current'])) {
+        if (is_numeric($params['max_total_evse_current'] ?? null)) {
             $this->SetValue('TotalLimit', (int) ($params['max_total_evse_current'] / 1000));
         }
 
@@ -210,10 +212,13 @@ class cFosWallbox extends IPSModule
         $watts = $this->GetValue('TargetPower');
         $this->switchPhases($d, $mode, $watts, $phases);
 
-        $min = (int) $d['min_charging_cur'];
-        $max = CfosLogic::maxMilliamps($d['max_charging_cur'], $this->ReadPropertyInteger('MaxCurrent'));
+        $min = CfosLogic::minMilliamps($d['min_charging_cur'] ?? null);
+        $max = CfosLogic::maxMilliamps($d['max_charging_cur'] ?? null, $this->ReadPropertyInteger('MaxCurrent'));
         $command = CfosLogic::command($mode, $watts, $this->GetValue('ImmediateCurrent'), $phases, $this->ReadPropertyFloat('Voltage'), $min, $max);
         $last = $this->ReadAttributeInteger('LastCommand');
+        if ($mode === CfosLogic::MODE_SURPLUS) {
+            $command = CfosLogic::holdCommand($command, $last, $this->now(), $this->ReadAttributeInteger('LastChange'), $this->ReadPropertyInteger('StartStopHold'));
+        }
         if (!CfosLogic::shouldSend($command, $last, $this->now(), $this->ReadAttributeInteger('LastSent'))) {
             return;
         }
@@ -225,6 +230,9 @@ class cFosWallbox extends IPSModule
         $flags = $command === 0 ? 'flags=C' : "flags=c&mamps=$command";
         if ($this->http("override_device&dev_id=$dev&$flags") === null) {
             return; // LastCommand bleibt, der naechste Lauf sendet neu
+        }
+        if ($last === -1 || ($command === 0) !== ($last === 0)) {
+            $this->WriteAttributeInteger('LastChange', $this->now());
         }
         $this->WriteAttributeInteger('LastCommand', $command);
         $this->WriteAttributeInteger('LastSent', $this->now());

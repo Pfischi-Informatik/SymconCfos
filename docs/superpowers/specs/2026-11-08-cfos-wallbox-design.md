@@ -96,6 +96,9 @@ niedrigere Werte setzt.
 
 `A = floor(W / (Voltage * Phasen))`, begrenzt auf Maximum (kleinster Wert aus
 MaxCurrent und `max_charging_cur`). Unter `min_charging_cur` wird pausiert.
+Liefert die Box statt eines Maximums eine Formel, gilt MaxCurrent, sonst 16 A. Der
+Minimalstrom ist nie kleiner als 6 A. Im Überschuss liegt zwischen Start und Stopp
+mindestens `StartStopHold` (Standard 120 s), damit das Schütz nicht taktet.
 Phasen: Bitzahl von `phases`, wenn größer 0, sonst die zuletzt bekannte Zahl, sonst
 DefaultPhases.
 

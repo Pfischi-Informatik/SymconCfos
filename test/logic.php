@@ -15,7 +15,11 @@ assert($L::resolvePhases(0, 0, 3) === 3);
 // Grenzen, auch Formel statt Zahl
 assert($L::maxMilliamps(15600, 0) === 15600);
 assert($L::maxMilliamps(16000, 10) === 10000);
-assert($L::maxMilliamps('M1.current + 1000', 0) === 63000);
+assert($L::maxMilliamps('M1.current + 1000', 0) === 16000, 'Formel: vorsichtiger Standard');
+assert($L::maxMilliamps(null, 0) === 16000);
+assert($L::maxMilliamps('M1.current', 25) === 25000);
+assert($L::minMilliamps(null) === 6000 && $L::minMilliamps('x') === 6000);
+assert($L::minMilliamps(8000) === 8000 && $L::minMilliamps(1000) === 6000);
 
 // Watt nach Milliampere
 assert($L::wattsToMilliamps(4140, 3, 230.0, 6000, 16000) === 6000);
@@ -68,5 +72,27 @@ $s = $L::trackEnergy($s, 1, 2600, '2026-11-09');
 assert($s['sessionWh'] === 1100 && $s['todayWh'] === 0, 'Ladung bleibt stehen, Tag neu');
 $s = $L::trackEnergy($s, 1, 10, '2026-11-09');
 assert($s['sessionWh'] === 0 && $s['todayWh'] === 0, 'nie negativ');
+
+// Zaehlersprung nach unten: Basis nachziehen
+$s = ['lastState' => 3, 'sessionStart' => 1000000, 'dayStart' => 1000000, 'day' => '2026-11-08'];
+$s = $L::trackEnergy($s, 3, 50, '2026-11-08');
+$s = $L::trackEnergy($s, 3, 900050, '2026-11-08');
+assert($s['sessionWh'] === 900000 && $s['todayWh'] === 900000);
+
+// Ungueltige Lesungen setzen keine Basis
+$s = ['lastState' => 3, 'sessionStart' => 1000000, 'dayStart' => 1000000, 'day' => '2026-11-08'];
+$s = $L::trackEnergy($s, 6, 0, '2026-11-09');
+assert($s['dayStart'] === 1000000 && $s['day'] === '2026-11-08' && $s['sessionStart'] === 1000000);
+$s = $L::trackEnergy($s, 3, 1000100, '2026-11-09');
+assert($s['dayStart'] === 1000100 && $s['todayWh'] === 0 && $s['sessionWh'] === 100);
+$s = $L::trackEnergy(['lastState' => 0, 'sessionStart' => -1, 'dayStart' => 0, 'day' => ''], 6, 5000, '2026-11-09');
+assert($s['sessionWh'] === 0 && $s['todayWh'] === 0, 'Erststart offline');
+
+// Start/Stopp-Haltezeit
+assert($L::holdCommand(0, 6000, 1100, 1000, 120) === 6000);
+assert($L::holdCommand(0, 6000, 1120, 1000, 120) === 0);
+assert($L::holdCommand(6000, 0, 1100, 1000, 120) === 0);
+assert($L::holdCommand(7000, 6000, 1001, 1000, 120) === 7000, 'Stromaenderung ohne Haltezeit');
+assert($L::holdCommand(0, -1, 1001, 1000, 120) === 0, 'erster Befehl');
 
 echo "OK\n";

@@ -47,6 +47,10 @@ der Modus auf **Überschuss** stehen.
 Die Phasenumschaltung ist standardmäßig aus. Sie wirkt nur bei der im Master
 eingebauten Box und unterbricht die Ladung jedes Mal für etwa zwei Minuten.
 
+Im Überschuss liegen zwischen Start und Stopp mindestens 120 Sekunden (einstellbar),
+damit das Schütz bei Wolken nicht taktet. Meldet die Box ihr Maximum als Formel,
+gilt der Wert „Maximaler Strom“ der Instanz, sonst 16 A.
+
 ## Status
 
 | Code | Bedeutung |

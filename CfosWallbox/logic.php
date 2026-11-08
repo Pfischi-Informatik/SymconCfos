@@ -12,7 +12,8 @@ final class CfosLogic
     private const PHASE_DOWN_W = 4140;
     private const PHASE_UP_W = 4440;
     private const RESEND_SECONDS = 60;
-    private const FALLBACK_MAX_MA = 63000;
+    private const FALLBACK_MAX_MA = 16000;
+    private const MIN_MA = 6000;
 
     public static function plugged(int $state): bool
     {
@@ -33,8 +34,25 @@ final class CfosLogic
     /** $boxMax kann laut cFos auch eine Formel sein. */
     public static function maxMilliamps(mixed $boxMax, int $limitA): int
     {
-        $box = is_numeric($boxMax) ? (int) $boxMax : self::FALLBACK_MAX_MA;
-        return $limitA > 0 ? min($box, $limitA * 1000) : $box;
+        if (!is_numeric($boxMax)) {
+            return $limitA > 0 ? $limitA * 1000 : self::FALLBACK_MAX_MA;
+        }
+        return $limitA > 0 ? min((int) $boxMax, $limitA * 1000) : (int) $boxMax;
+    }
+
+    /** Unter 6 A laedt kein Fahrzeug, fehlende Werte zaehlen als 6 A. */
+    public static function minMilliamps(mixed $boxMin): int
+    {
+        return is_numeric($boxMin) ? max(self::MIN_MA, (int) $boxMin) : self::MIN_MA;
+    }
+
+    /** Haelt Wechsel zwischen Laden und Pause zurueck, damit das Schuetz nicht taktet. */
+    public static function holdCommand(int $command, int $last, int $now, int $lastChange, int $hold): int
+    {
+        if ($last >= 0 && ($command === 0) !== ($last === 0) && $now - $lastChange < $hold) {
+            return $last;
+        }
+        return $command;
     }
 
     /** 0 bedeutet: unter Minimalstrom, also pausieren. */
@@ -88,22 +106,21 @@ final class CfosLogic
 
     public static function trackEnergy(array $s, int $state, int $totalWh, string $today): array
     {
-        if ($s['sessionStart'] < 0) {
-            $s['sessionStart'] = $totalWh;
+        // Fehler (5), offline (6) und Nullwerte sagen nichts ueber das Fahrzeug aus
+        if ($state >= 1 && $state <= 4 && $totalWh > 0) {
+            if ($s['sessionStart'] < 0 || $totalWh < $s['sessionStart'] || ($s['lastState'] === 1 && self::plugged($state))) {
+                $s['sessionStart'] = $totalWh;
+            }
+            if ($s['day'] !== $today || $totalWh < $s['dayStart']) {
+                $s['day'] = $today;
+                $s['dayStart'] = $totalWh;
+            }
         }
-        if ($s['day'] !== $today) {
-            $s['day'] = $today;
-            $s['dayStart'] = $totalWh;
-        }
-        if ($s['lastState'] === 1 && self::plugged($state)) {
-            $s['sessionStart'] = $totalWh;
-        }
-        // Fehler (5) und offline (6) sagen nichts ueber das Fahrzeug aus
         if ($state >= 1 && $state <= 4) {
             $s['lastState'] = $state;
         }
-        $s['sessionWh'] = max(0, $totalWh - $s['sessionStart']);
-        $s['todayWh'] = max(0, $totalWh - $s['dayStart']);
+        $s['sessionWh'] = $totalWh > 0 && $s['sessionStart'] >= 0 ? max(0, $totalWh - $s['sessionStart']) : 0;
+        $s['todayWh'] = $totalWh > 0 && $s['day'] === $today ? max(0, $totalWh - $s['dayStart']) : 0;
         return $s;
     }
 }
