@@ -70,14 +70,14 @@ CFOS_Update(int $InstanceID): bool; // sofort abfragen
 ## Tests
 
 ```bash
-php -d zend.assertions=1 -d assert.exception=1 test/logic.php
+php -d zend.assertions=1 -d assert.exception=1 .test/logic.php
 ```
 
 ```bash
-php -d zend.assertions=1 -d assert.exception=1 test/live.php
+php -d zend.assertions=1 -d assert.exception=1 .test/live.php
 ```
 
-Mit `test/live.php <host> <ladepunkt>` wird zusätzlich eine echte Box gelesen.
+Mit `.test/live.php <host> <ladepunkt>` wird zusätzlich eine echte Box gelesen.
 Schaltende Befehle blockiert der Test immer.
 
 ## Noch nicht am Fahrzeug getestet
