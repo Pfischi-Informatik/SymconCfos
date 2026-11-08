@@ -198,6 +198,15 @@ assert(!in_array('modbus&device=evse&write=8087&value=0', $b->take(), true), 'Ha
 $b->clock += 600; $b->Update();
 assert(in_array('modbus&device=evse&write=8087&value=0', $b->take(), true));
 
+// Vor dem Laden: Phasenwunsch zaehlt, sonst blockiert 1P-Ueberschuss den Start
+$b = box();
+$b->SetProperty('PhaseSwitch', true);
+$b->ApplyChanges();
+$b->device = device(2, 1000000);
+$b->RequestAction('TargetPower', 1380);
+$c = $b->take();
+assert(in_array('modbus&device=evse&write=8087&value=1', $c, true) && in_array('override_device&dev_id=E1&flags=c&mamps=6000', $c, true), '1P-Start bei unbekannten Phasen');
+
 // Fremdbox schaltet keine Phasen
 $b = box();
 $b->SetProperty('PhaseSwitch', true);

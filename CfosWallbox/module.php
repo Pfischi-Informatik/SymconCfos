@@ -207,10 +207,13 @@ class cFosWallbox extends IPSModule
 
     private function control(array $d, int $mode, int $bits): void
     {
-        $phases = CfosLogic::resolvePhases($bits, $this->ReadAttributeInteger('LastPhases'), $this->ReadPropertyInteger('DefaultPhases'));
-        $this->WriteAttributeInteger('LastPhases', $phases);
+        $default = $this->ReadPropertyInteger('DefaultPhases');
+        $phases = CfosLogic::resolvePhases($bits, $this->ReadAttributeInteger('LastPhases'), $default);
         $watts = $this->GetValue('TargetPower');
         $this->switchPhases($d, $mode, $watts, $phases);
+        // Solange die Box noch nichts meldet, gilt die gerade gewaehlte Phasenzahl
+        $phases = CfosLogic::resolvePhases($bits, $this->ReadAttributeInteger('PhaseTarget') ?: $phases, $default);
+        $this->WriteAttributeInteger('LastPhases', $phases);
 
         $min = CfosLogic::minMilliamps($d['min_charging_cur'] ?? null);
         $max = CfosLogic::maxMilliamps($d['max_charging_cur'] ?? null, $this->ReadPropertyInteger('MaxCurrent'));
