@@ -22,6 +22,7 @@ class cFosWallbox extends IPSModule
         $this->RegisterPropertyString('Password', '');
         $this->RegisterPropertyInteger('Interval', 5);
         $this->RegisterPropertyInteger('MaxCurrent', 0);
+        $this->RegisterPropertyInteger('MaxPower', 11040);
         $this->RegisterPropertyFloat('Voltage', 230.0);
         $this->RegisterPropertyInteger('DefaultPhases', 3);
         $this->RegisterPropertyBoolean('PhaseSwitch', false);
@@ -44,6 +45,14 @@ class cFosWallbox extends IPSModule
         $this->RegisterTimer('CfosUpdate', 0, 'CFOS_Update($_IPS[\'TARGET\']);');
     }
 
+    public function Destroy(): void
+    {
+        parent::Destroy();
+        if (!IPS_InstanceExists($this->InstanceID) && IPS_VariableProfileExists($this->targetProfile())) {
+            IPS_DeleteVariableProfile($this->targetProfile());
+        }
+    }
+
     public function ApplyChanges(): void
     {
         parent::ApplyChanges();
@@ -52,7 +61,7 @@ class cFosWallbox extends IPSModule
         $this->RegisterVariableInteger('Mode', 'Modus', 'CFOS.Mode', 1);
         $this->RegisterVariableInteger('ImmediateCurrent', 'Sofort-Strom', 'CFOS.Ampere', 2);
         $this->RegisterVariableFloat('ImmediateTarget', 'Sofort-kWh-Ziel (0 = kein Limit)', '~Electricity', 3);
-        $this->RegisterVariableInteger('TargetPower', 'Leistung (Soll)', 'CFOS.Watt', 4);
+        $this->RegisterVariableInteger('TargetPower', 'Leistung (Soll)', $this->targetProfile(), 4);
         $this->RegisterVariableInteger('Power', 'Leistung (Ist)', 'CFOS.Watt', 5);
         $this->RegisterVariableFloat('CurrentL1', 'Strom L1', '~Ampere', 6);
         $this->RegisterVariableFloat('CurrentL2', 'Strom L2', '~Ampere', 7);
@@ -130,7 +139,7 @@ class cFosWallbox extends IPSModule
                 $this->SetValue('ImmediateTarget', max(0.0, (float) $Value));
                 break;
             case 'TargetPower':
-                $this->SetValue('TargetPower', max(0, (int) $Value));
+                $this->SetValue('TargetPower', min(max(0, (int) $Value), $this->ReadPropertyInteger('MaxPower')));
                 break;
             case 'TotalLimit':
                 $this->setTotalLimit(max(6, min(63, (int) $Value)));
@@ -319,13 +328,18 @@ class cFosWallbox extends IPSModule
     {
         $this->profile('CFOS.Mode', [0 => 'Aus', 1 => 'Ueberschuss', 2 => 'Sofort']);
         $this->profile('CFOS.State', [1 => 'Bereit', 2 => 'Fahrzeug erkannt', 3 => 'Laedt', 4 => 'Laedt (Lueftung)', 5 => 'Fehler', 6 => 'Offline']);
-        foreach (['CFOS.Ampere' => [' A', 6, 63, 1], 'CFOS.Watt' => [' W', 0, 0, 0]] as $name => [$suffix, $min, $max, $step]) {
+        foreach (['CFOS.Ampere' => [' A', 6, 63, 1], 'CFOS.Watt' => [' W', 0, 0, 0], $this->targetProfile() => [' W', 0, $this->ReadPropertyInteger('MaxPower'), 100]] as $name => [$suffix, $min, $max, $step]) {
             if (!IPS_VariableProfileExists($name)) {
                 IPS_CreateVariableProfile($name, VARIABLETYPE_INTEGER);
                 IPS_SetVariableProfileText($name, '', $suffix);
-                IPS_SetVariableProfileValues($name, $min, $max, $step);
             }
+            IPS_SetVariableProfileValues($name, $min, $max, $step); // auch bestehende Profile aktuell halten
         }
+    }
+
+    private function targetProfile(): string
+    {
+        return 'CFOS.TargetPower.' . $this->InstanceID;
     }
 
     private function profile(string $name, array $values): void

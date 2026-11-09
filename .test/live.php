@@ -130,6 +130,11 @@ function box(): TestBox
 // Ueberschuss, erneutes Senden
 $b = box();
 $b->device = device(2, 1000000);
+$b->RequestAction('TargetPower', 99999);
+assert($b->GetValue('TargetPower') === 11040, 'Sollwert auf Maximale Leistung begrenzt');
+
+$b = box();
+$b->device = device(2, 1000000);
 $b->RequestAction('TargetPower', 4600);
 assert($b->take() === ['override_device&dev_id=E1&flags=E', 'override_device&dev_id=E1&flags=c&mamps=6000']);
 $b->clock += 59; $b->Update();
