@@ -27,6 +27,10 @@ Unter „Elektrofahrzeuge“ die Variable **Leistung (Soll)** der Instanz als
 Priorität stellst du im Energie-Manager selbst ein. Damit der Sollwert wirkt, muss
 der Modus auf **Überschuss** stehen.
 
+Optional lässt sich in der Instanz die Variable „Modus“ dieses Geräts im Energie-Manager
+auswählen. Endet Sofort (kWh-Ziel erreicht oder abgesteckt), setzt das Modul sie auf
+**Automatisch**.
+
 ## Variablen
 
 | Name | Einheit | Schaltbar | Bedeutung |

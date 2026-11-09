@@ -6,6 +6,7 @@
         { "type": "NumberSpinner", "name": "Interval", "caption": "Abfrageintervall", "suffix": "s", "minimum": 2, "maximum": 3600 },
         { "type": "NumberSpinner", "name": "MaxCurrent", "caption": "Maximaler Strom (0 = Wert der Box)", "suffix": "A", "minimum": 0, "maximum": 63 },
         { "type": "NumberSpinner", "name": "MaxPower", "caption": "Maximale Leistung (Regler und Energie-Manager)", "suffix": "W", "minimum": 1380, "maximum": 44000 },
+        { "type": "SelectVariable", "name": "OptimizerMode", "caption": "Modus-Variable im Energie-Manager (nach Sofort auf Automatisch)" },
         { "type": "NumberSpinner", "name": "Voltage", "caption": "Nennspannung", "suffix": "V", "digits": 1, "minimum": 180, "maximum": 260 },
         { "type": "Select", "name": "DefaultPhases", "caption": "Phasen, solange die Box keine meldet", "options": [{ "caption": "1", "value": 1 }, { "caption": "3", "value": 3 }] },
         { "type": "CheckBox", "name": "PhaseSwitch", "caption": "Phasen durch das Modul umschalten (nur eingebaute Box)" },

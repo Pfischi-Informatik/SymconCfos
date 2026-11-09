@@ -25,6 +25,10 @@ function IPS_SetVariableProfileAssociation($n, $v, $name, $i, $c) { global $prof
 function IPS_SetVariableProfileValues($n, $min, $max, $step) {}
 function IPS_SetVariableProfileText($n, $prefix, $suffix) {}
 function IPS_SetVariableProfileIcon($n, $icon) {}
+function IPS_VariableExists($i) { return $i === 777; }
+function IPS_GetVariable($i) { return ['VariableCustomProfile' => '', 'VariableProfile' => 'EO.Mode']; }
+function IPS_GetVariableProfile($n) { return ['Associations' => [['Value' => 0, 'Name' => 'Aktiv'], ['Value' => 1, 'Name' => 'Inaktiv'], ['Value' => 2, 'Name' => 'Automatisch']]]; }
+function RequestAction($i, $v) { global $requested; $requested[] = [$i, $v]; }
 function IPS_GetKernelRunlevel() { return KR_READY; }
 
 class IPSModule
@@ -185,6 +189,23 @@ assert($b->GetValue('Mode') === CfosLogic::MODE_IMMEDIATE, 'Ziel noch nicht erre
 $b->device = device(3, 1007000, 7);
 $b->Update();
 assert($b->GetValue('Mode') === CfosLogic::MODE_SURPLUS, 'Ziel ab Start erreicht');
+
+// Nach Sofort geht der Energie-Manager auf Automatisch
+global $profiles, $requested;
+$profiles['EO.Mode'] = [];
+$requested = [];
+$b = box();
+$b->SetProperty('OptimizerMode', 777);
+$b->device = device(3, 1000000, 7);
+$b->Update();
+$b->RequestAction('ImmediateTarget', 1.0);
+$b->RequestAction('Mode', CfosLogic::MODE_IMMEDIATE);
+assert($requested === [], 'waehrend Sofort nichts umstellen');
+$b->device = device(3, 1001000, 7);
+$b->Update();
+assert($requested === [[777, 2]], 'Ziel erreicht stellt auf Automatisch');
+$b->Update();
+assert(count($requested) === 1, 'nur einmal');
 
 // Maximum als Formel
 $b = box();

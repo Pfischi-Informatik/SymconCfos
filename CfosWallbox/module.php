@@ -23,6 +23,7 @@ class cFosWallbox extends IPSModule
         $this->RegisterPropertyInteger('Interval', 5);
         $this->RegisterPropertyInteger('MaxCurrent', 0);
         $this->RegisterPropertyInteger('MaxPower', 11040);
+        $this->RegisterPropertyInteger('OptimizerMode', 0);
         $this->RegisterPropertyFloat('Voltage', 230.0);
         $this->RegisterPropertyInteger('DefaultPhases', 3);
         $this->RegisterPropertyBoolean('PhaseSwitch', false);
@@ -212,8 +213,12 @@ class cFosWallbox extends IPSModule
             $this->WriteAttributeInteger('ImmediateStart', $total);
         }
         $immediateKwh = ($total - $this->ReadAttributeInteger('ImmediateStart')) / 1000;
-        $mode = CfosLogic::nextMode($this->GetValue('Mode'), $lastState, $state, $immediateKwh, $this->GetValue('ImmediateTarget'));
+        $oldMode = $this->GetValue('Mode');
+        $mode = CfosLogic::nextMode($oldMode, $lastState, $state, $immediateKwh, $this->GetValue('ImmediateTarget'));
         $this->SetValue('Mode', $mode);
+        if ($oldMode === CfosLogic::MODE_IMMEDIATE && $mode === CfosLogic::MODE_SURPLUS) {
+            $this->optimizerToAuto();
+        }
         if (CfosLogic::plugged($lastState) && $state === 1) {
             $this->SetValue('ImmediateTarget', 0.0);
         }
@@ -347,6 +352,24 @@ class cFosWallbox extends IPSModule
             }
             IPS_SetVariableProfileValues($name, $min, $max, $step); // auch bestehende Profile aktuell halten
         }
+    }
+
+    /** Der Zahlenwert von "Automatisch" ist nicht dokumentiert, darum aus dem Profil lesen. */
+    private function optimizerToAuto(): void
+    {
+        $id = $this->ReadPropertyInteger('OptimizerMode');
+        if ($id <= 0 || !IPS_VariableExists($id)) {
+            return;
+        }
+        $variable = IPS_GetVariable($id);
+        $profile = $variable['VariableCustomProfile'] ?: $variable['VariableProfile'];
+        foreach (IPS_VariableProfileExists($profile) ? IPS_GetVariableProfile($profile)['Associations'] : [] as $association) {
+            if (stripos($association['Name'], 'auto') === 0) {
+                RequestAction($id, $association['Value']);
+                return;
+            }
+        }
+        $this->LogMessage('Energie-Manager: kein Wert "Automatisch" im Profil der Modus-Variable gefunden', KL_WARNING);
     }
 
     private function kwhProfile(): void
