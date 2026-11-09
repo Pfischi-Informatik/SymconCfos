@@ -58,10 +58,11 @@ class cFosWallbox extends IPSModule
     {
         parent::ApplyChanges();
         $this->createProfiles();
+        $this->kwhProfile();
 
         $this->RegisterVariableInteger('Mode', 'Modus', 'CFOS.Mode', 1);
         $this->RegisterVariableInteger('ImmediateCurrent', 'Sofort-Strom', 'CFOS.Ampere', 2);
-        $this->RegisterVariableFloat('ImmediateTarget', 'Sofort-kWh-Ziel (0 = kein Limit)', '~Electricity', 3);
+        $this->RegisterVariableFloat('ImmediateTarget', 'Sofort-kWh-Ziel (0 = kein Limit)', 'CFOS.Kwh', 3);
         $this->RegisterVariableInteger('TargetPower', 'Leistung (Soll)', $this->targetProfile(), 4);
         $this->RegisterVariableInteger('Power', 'Leistung (Ist)', 'CFOS.Watt', 5);
         $this->RegisterVariableFloat('CurrentL1', 'Strom L1', '~Ampere', 6);
@@ -213,6 +214,9 @@ class cFosWallbox extends IPSModule
         $immediateKwh = ($total - $this->ReadAttributeInteger('ImmediateStart')) / 1000;
         $mode = CfosLogic::nextMode($this->GetValue('Mode'), $lastState, $state, $immediateKwh, $this->GetValue('ImmediateTarget'));
         $this->SetValue('Mode', $mode);
+        if (CfosLogic::plugged($lastState) && $state === 1) {
+            $this->SetValue('ImmediateTarget', 0.0);
+        }
 
         if (!CfosLogic::plugged($state)) {
             $this->WriteAttributeInteger('LastCommand', -1);
@@ -343,6 +347,15 @@ class cFosWallbox extends IPSModule
             }
             IPS_SetVariableProfileValues($name, $min, $max, $step); // auch bestehende Profile aktuell halten
         }
+    }
+
+    private function kwhProfile(): void
+    {
+        if (!IPS_VariableProfileExists('CFOS.Kwh')) {
+            IPS_CreateVariableProfile('CFOS.Kwh', VARIABLETYPE_FLOAT);
+            IPS_SetVariableProfileText('CFOS.Kwh', '', ' kWh');
+        }
+        IPS_SetVariableProfileValues('CFOS.Kwh', 0, 80, 1);
     }
 
     private function targetProfile(): string

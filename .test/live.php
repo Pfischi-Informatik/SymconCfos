@@ -159,14 +159,16 @@ $b->Update();
 assert($b->GetValue('Mode') === CfosLogic::MODE_SURPLUS, 'kWh-Ziel erreicht');
 assert(abs($b->GetValue('EnergySession') - 1.0) < 0.001);
 
-$b->RequestAction('ImmediateTarget', 0.0);
+$b->RequestAction('ImmediateTarget', 5.0);
 $b->RequestAction('Mode', CfosLogic::MODE_IMMEDIATE);
 $b->device = device(6, 1001000);
 $b->Update();
 assert($b->GetValue('Mode') === CfosLogic::MODE_IMMEDIATE, 'offline ist kein Abstecken');
+assert($b->GetValue('ImmediateTarget') === 5.0, 'offline behaelt das Ziel');
 $b->device = device(1, 1001000);
 $b->Update();
 assert($b->GetValue('Mode') === CfosLogic::MODE_SURPLUS, 'Abstecken');
+assert($b->GetValue('ImmediateTarget') === 0.0, 'Abstecken setzt das Ziel zurueck');
 
 // kWh-Ziel zaehlt ab Sofort-Start, nicht ab Einstecken
 $b = box();

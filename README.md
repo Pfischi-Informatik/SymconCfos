@@ -33,7 +33,7 @@ der Modus auf **Überschuss** stehen.
 |---|---|---|---|
 | Modus | | ja | Aus, Überschuss, Sofort; beim Abstecken zurück auf Überschuss |
 | Sofort-Strom | A | ja | Strom im Modus Sofort |
-| Sofort-kWh-Ziel | kWh | ja | 0 = kein Limit, zählt ab Start von Sofort, danach zurück auf Überschuss |
+| Sofort-kWh-Ziel | kWh | ja | 0 = kein Limit, zählt ab Start von Sofort, danach zurück auf Überschuss; beim Abstecken wieder 0 |
 | Leistung (Soll) | W | ja | Vorgabe des Energie-Managers, begrenzt auf „Maximale Leistung“ der Instanz |
 | Leistung (Ist) | W | nein | Aktuelle Ladeleistung |
 | Strom L1 bis L3 | A | nein | Strom je Phase |
