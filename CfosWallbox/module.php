@@ -41,6 +41,7 @@ class cFosWallbox extends IPSModule
         $this->RegisterAttributeInteger('LastPhases', 0);
         $this->RegisterAttributeInteger('PhaseTarget', 0);
         $this->RegisterAttributeInteger('LastPhaseSwitch', 0);
+        $this->RegisterAttributeInteger('ImmediateStart', -1);
 
         $this->RegisterTimer('CfosUpdate', 0, 'CFOS_Update($_IPS[\'TARGET\']);');
     }
@@ -130,6 +131,9 @@ class cFosWallbox extends IPSModule
     {
         switch ($Ident) {
             case 'Mode':
+                if ((int) $Value === CfosLogic::MODE_IMMEDIATE && $this->GetValue('Mode') !== CfosLogic::MODE_IMMEDIATE) {
+                    $this->WriteAttributeInteger('ImmediateStart', -1); // der naechste Lauf merkt sich den Zaehler
+                }
                 $this->SetValue('Mode', max(0, min(2, (int) $Value)));
                 break;
             case 'ImmediateCurrent':
@@ -203,7 +207,11 @@ class cFosWallbox extends IPSModule
             $this->SetValue('TotalLimit', (int) ($params['max_total_evse_current'] / 1000));
         }
 
-        $mode = CfosLogic::nextMode($this->GetValue('Mode'), $lastState, $state, $energy['sessionWh'] / 1000, $this->GetValue('ImmediateTarget'));
+        if ($this->ReadAttributeInteger('ImmediateStart') < 0) {
+            $this->WriteAttributeInteger('ImmediateStart', $total);
+        }
+        $immediateKwh = ($total - $this->ReadAttributeInteger('ImmediateStart')) / 1000;
+        $mode = CfosLogic::nextMode($this->GetValue('Mode'), $lastState, $state, $immediateKwh, $this->GetValue('ImmediateTarget'));
         $this->SetValue('Mode', $mode);
 
         if (!CfosLogic::plugged($state)) {

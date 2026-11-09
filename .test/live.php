@@ -168,6 +168,22 @@ $b->device = device(1, 1001000);
 $b->Update();
 assert($b->GetValue('Mode') === CfosLogic::MODE_SURPLUS, 'Abstecken');
 
+// kWh-Ziel zaehlt ab Sofort-Start, nicht ab Einstecken
+$b = box();
+$b->device = device(3, 1000000, 7);
+$b->Update();
+$b->device = device(3, 1005000, 7);
+$b->Update();
+$b->RequestAction('ImmediateTarget', 2.0);
+$b->RequestAction('Mode', CfosLogic::MODE_IMMEDIATE);
+assert($b->GetValue('Mode') === CfosLogic::MODE_IMMEDIATE, 'bereits geladene kWh zaehlen nicht');
+$b->device = device(3, 1006900, 7);
+$b->Update();
+assert($b->GetValue('Mode') === CfosLogic::MODE_IMMEDIATE, 'Ziel noch nicht erreicht');
+$b->device = device(3, 1007000, 7);
+$b->Update();
+assert($b->GetValue('Mode') === CfosLogic::MODE_SURPLUS, 'Ziel ab Start erreicht');
+
 // Maximum als Formel
 $b = box();
 $b->device = device(2, 1000000, 0, 'M1.current');
