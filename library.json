@@ -4,7 +4,7 @@
     "name": "cFos Wallbox",
     "url": "https://github.com/Pfischi-Informatik/SymconCfos",
     "compatibility": { "version": "7.1" },
-    "version": "1.0",
-    "build": 1,
+    "version": "1.1",
+    "build": 2,
     "date": 0
 }
