@@ -207,6 +207,25 @@ assert($requested === [[777, 2]], 'Ziel erreicht stellt auf Automatisch');
 $b->Update();
 assert(count($requested) === 1, 'nur einmal');
 
+// Ziel im Ueberschuss, Energie-Manager laedt manuell
+$requested = [];
+$b = box();
+$b->SetProperty('OptimizerMode', 777);
+$b->device = device(3, 1000000, 7);
+$b->Update();
+$b->device = device(3, 1003000, 7);
+$b->Update();
+$b->RequestAction('ImmediateTarget', 1.0);
+$b->device = device(3, 1003900, 7);
+$b->Update();
+assert($requested === [] && $b->GetValue('ImmediateTarget') === 1.0, 'zaehlt ab dem Setzen');
+$b->device = device(3, 1004000, 7);
+$b->Update();
+assert($requested === [[777, 2]], 'Ziel im Ueberschuss stellt auf Automatisch');
+assert($b->GetValue('ImmediateTarget') === 0.0 && $b->GetValue('Mode') === CfosLogic::MODE_SURPLUS);
+$b->Update();
+assert(count($requested) === 1, 'nur einmal');
+
 // Maximum als Formel
 $b = box();
 $b->device = device(2, 1000000, 0, 'M1.current');

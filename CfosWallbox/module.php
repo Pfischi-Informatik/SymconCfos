@@ -133,9 +133,6 @@ class cFosWallbox extends IPSModule
     {
         switch ($Ident) {
             case 'Mode':
-                if ((int) $Value === CfosLogic::MODE_IMMEDIATE && $this->GetValue('Mode') !== CfosLogic::MODE_IMMEDIATE) {
-                    $this->WriteAttributeInteger('ImmediateStart', -1); // der naechste Lauf merkt sich den Zaehler
-                }
                 $this->SetValue('Mode', max(0, min(2, (int) $Value)));
                 break;
             case 'ImmediateCurrent':
@@ -143,6 +140,7 @@ class cFosWallbox extends IPSModule
                 break;
             case 'ImmediateTarget':
                 $this->SetValue('ImmediateTarget', max(0.0, (float) $Value));
+                $this->WriteAttributeInteger('ImmediateStart', -1); // gezaehlt wird ab dem Setzen, der naechste Lauf merkt sich den Zaehler
                 break;
             case 'TargetPower':
                 $this->SetValue('TargetPower', min(max(0, (int) $Value), $this->ReadPropertyInteger('MaxPower')));
@@ -213,10 +211,15 @@ class cFosWallbox extends IPSModule
             $this->WriteAttributeInteger('ImmediateStart', $total);
         }
         $immediateKwh = ($total - $this->ReadAttributeInteger('ImmediateStart')) / 1000;
+        $target = $this->GetValue('ImmediateTarget');
         $oldMode = $this->GetValue('Mode');
-        $mode = CfosLogic::nextMode($oldMode, $lastState, $state, $immediateKwh, $this->GetValue('ImmediateTarget'));
+        $mode = CfosLogic::nextMode($oldMode, $lastState, $state, $immediateKwh, $target);
         $this->SetValue('Mode', $mode);
-        if ($oldMode === CfosLogic::MODE_IMMEDIATE && $mode === CfosLogic::MODE_SURPLUS) {
+        if ($target > 0 && $immediateKwh >= $target) {
+            // Ziel gilt in jedem Modus, auch wenn der Energie-Manager manuell laedt
+            $this->SetValue('ImmediateTarget', 0.0);
+            $this->optimizerToAuto();
+        } elseif ($oldMode === CfosLogic::MODE_IMMEDIATE && $mode === CfosLogic::MODE_SURPLUS) {
             $this->optimizerToAuto();
         }
         if (CfosLogic::plugged($lastState) && $state === 1) {
