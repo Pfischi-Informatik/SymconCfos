@@ -207,16 +207,22 @@ class cFosWallbox extends IPSModule
             $this->SetValue('TotalLimit', (int) ($params['max_total_evse_current'] / 1000));
         }
 
-        if ($this->ReadAttributeInteger('ImmediateStart') < 0) {
+        $linked = $this->optimizerCurrentMode();
+        if ($linked !== null) {
+            $this->SetValue('Mode', $linked);
+        }
+        // Das kWh-Ziel zaehlt nur in Sofort (Energie-Manager manuell), ab dessen Beginn oder dem Setzen des Ziels
+        if ($this->GetValue('Mode') !== CfosLogic::MODE_IMMEDIATE) {
+            $this->WriteAttributeInteger('ImmediateStart', -1);
+        } elseif ($this->ReadAttributeInteger('ImmediateStart') < 0) {
             $this->WriteAttributeInteger('ImmediateStart', $total);
         }
-        $immediateKwh = ($total - $this->ReadAttributeInteger('ImmediateStart')) / 1000;
+        $immediateKwh = $this->ReadAttributeInteger('ImmediateStart') < 0 ? 0.0 : ($total - $this->ReadAttributeInteger('ImmediateStart')) / 1000;
         $target = $this->GetValue('ImmediateTarget');
         $oldMode = $this->GetValue('Mode');
         $mode = CfosLogic::nextMode($oldMode, $lastState, $state, $immediateKwh, $target);
         $this->SetValue('Mode', $mode);
-        if ($target > 0 && $immediateKwh >= $target) {
-            // Ziel gilt in jedem Modus, auch wenn der Energie-Manager manuell laedt
+        if ($oldMode === CfosLogic::MODE_IMMEDIATE && $target > 0 && $immediateKwh >= $target) {
             $this->SetValue('ImmediateTarget', 0.0);
             $this->optimizerToAuto();
         } elseif ($oldMode === CfosLogic::MODE_IMMEDIATE && $mode === CfosLogic::MODE_SURPLUS) {
@@ -246,7 +252,9 @@ class cFosWallbox extends IPSModule
 
         $min = CfosLogic::minMilliamps($d['min_charging_cur'] ?? null);
         $max = CfosLogic::maxMilliamps($d['max_charging_cur'] ?? null, $this->ReadPropertyInteger('MaxCurrent'));
-        $command = CfosLogic::command($mode, $watts, $this->GetValue('ImmediateCurrent'), $phases, $this->ReadPropertyFloat('Voltage'), $min, $max);
+        // Manuell im Energie-Manager: dessen Leistung gilt, nicht der Sofort-Strom
+        $calcMode = $mode === CfosLogic::MODE_IMMEDIATE && $this->optimizerCurrentMode() !== null ? CfosLogic::MODE_SURPLUS : $mode;
+        $command = CfosLogic::command($calcMode, $watts, $this->GetValue('ImmediateCurrent'), $phases, $this->ReadPropertyFloat('Voltage'), $min, $max);
         $last = $this->ReadAttributeInteger('LastCommand');
         if ($mode === CfosLogic::MODE_SURPLUS) {
             $command = CfosLogic::holdCommand($command, $last, $this->now(), $this->ReadAttributeInteger('LastChange'), $this->ReadPropertyInteger('StartStopHold'));
@@ -357,22 +365,52 @@ class cFosWallbox extends IPSModule
         }
     }
 
-    /** Der Zahlenwert von "Automatisch" ist nicht dokumentiert, darum aus dem Profil lesen. */
-    private function optimizerToAuto(): void
+    // ====================================================================
+    // Energie-Manager (Zahlenwerte des Modus sind nicht dokumentiert, darum ueber die Beschriftung)
+    // ====================================================================
+
+    /** Wert => Beschriftung aus Profil oder Darstellung der Modus-Variable. */
+    private function optimizerOptions(int $id): array
+    {
+        $variable = IPS_GetVariable($id);
+        $profile = $variable['VariableCustomProfile'] ?? '' ?: ($variable['VariableProfile'] ?? '');
+        if ($profile !== '' && IPS_VariableProfileExists($profile)) {
+            return array_column(IPS_GetVariableProfile($profile)['Associations'], 'Name', 'Value');
+        }
+        $presentation = ($variable['VariableCustomPresentation'] ?? []) ?: ($variable['VariablePresentation'] ?? []);
+        $options = json_decode((string) ($presentation['OPTIONS'] ?? '[]'), true);
+        return is_array($options) ? array_column($options, 'Caption', 'Value') : [];
+    }
+
+    private function optimizerId(): int
     {
         $id = $this->ReadPropertyInteger('OptimizerMode');
-        if ($id <= 0 || !IPS_VariableExists($id)) {
+        return $id > 0 && IPS_VariableExists($id) ? $id : 0;
+    }
+
+    private function optimizerCurrentMode(): ?int
+    {
+        $id = $this->optimizerId();
+        if ($id === 0) {
+            return null;
+        }
+        $caption = $this->optimizerOptions($id)[(int) GetValue($id)] ?? null;
+        return $caption === null ? null : CfosLogic::optimizerMode((string) $caption);
+    }
+
+    private function optimizerToAuto(): void
+    {
+        $id = $this->optimizerId();
+        if ($id === 0) {
             return;
         }
-        $variable = IPS_GetVariable($id);
-        $profile = $variable['VariableCustomProfile'] ?: $variable['VariableProfile'];
-        foreach (IPS_VariableProfileExists($profile) ? IPS_GetVariableProfile($profile)['Associations'] : [] as $association) {
-            if (stripos($association['Name'], 'auto') === 0) {
-                RequestAction($id, $association['Value']);
+        foreach ($this->optimizerOptions($id) as $value => $caption) {
+            if (CfosLogic::optimizerMode((string) $caption) === CfosLogic::MODE_SURPLUS) {
+                RequestAction($id, $value);
                 return;
             }
         }
-        $this->LogMessage('Energie-Manager: kein Wert "Automatisch" im Profil der Modus-Variable gefunden', KL_WARNING);
+        $this->LogMessage('Energie-Manager: kein Ueberschuss-/Automatik-Wert in der Modus-Variable gefunden', KL_WARNING);
     }
 
     private function kwhProfile(): void

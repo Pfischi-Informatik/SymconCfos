@@ -27,8 +27,9 @@ function IPS_SetVariableProfileText($n, $prefix, $suffix) {}
 function IPS_SetVariableProfileIcon($n, $icon) {}
 function IPS_VariableExists($i) { return $i === 777; }
 function IPS_GetVariable($i) { return ['VariableCustomProfile' => '', 'VariableProfile' => 'EO.Mode']; }
-function IPS_GetVariableProfile($n) { return ['Associations' => [['Value' => 0, 'Name' => 'Aktiv'], ['Value' => 1, 'Name' => 'Inaktiv'], ['Value' => 2, 'Name' => 'Automatisch']]]; }
-function RequestAction($i, $v) { global $requested; $requested[] = [$i, $v]; }
+function IPS_GetVariableProfile($n) { return ['Associations' => [['Value' => 0, 'Name' => 'Manuell'], ['Value' => 1, 'Name' => 'Aus'], ['Value' => 2, 'Name' => 'Überschuss']]]; }
+function RequestAction($i, $v) { global $requested, $eoValue; $requested[] = [$i, $v]; $eoValue = $v; }
+function GetValue($i) { global $eoValue; return $eoValue; }
 function IPS_GetKernelRunlevel() { return KR_READY; }
 
 class IPSModule
@@ -194,6 +195,7 @@ assert($b->GetValue('Mode') === CfosLogic::MODE_SURPLUS, 'Ziel ab Start erreicht
 global $profiles, $requested;
 $profiles['EO.Mode'] = [];
 $requested = [];
+$eoValue = 0;
 $b = box();
 $b->SetProperty('OptimizerMode', 777);
 $b->device = device(3, 1000000, 7);
@@ -207,24 +209,45 @@ assert($requested === [[777, 2]], 'Ziel erreicht stellt auf Automatisch');
 $b->Update();
 assert(count($requested) === 1, 'nur einmal');
 
-// Ziel im Ueberschuss, Energie-Manager laedt manuell
+// Energie-Manager: im Ueberschuss kein kWh-Ziel, manuell bis zum Ziel
 $requested = [];
+$eoValue = 2;
 $b = box();
 $b->SetProperty('OptimizerMode', 777);
 $b->device = device(3, 1000000, 7);
 $b->Update();
+$b->RequestAction('ImmediateTarget', 1.0);
 $b->device = device(3, 1003000, 7);
 $b->Update();
-$b->RequestAction('ImmediateTarget', 1.0);
+assert($requested === [] && $b->GetValue('ImmediateTarget') === 1.0, 'Ueberschuss ignoriert das Ziel');
+$eoValue = 0;
+$b->Update();
+assert($b->GetValue('Mode') === CfosLogic::MODE_IMMEDIATE, 'manuell');
 $b->device = device(3, 1003900, 7);
 $b->Update();
-assert($requested === [] && $b->GetValue('ImmediateTarget') === 1.0, 'zaehlt ab dem Setzen');
+assert($requested === [], 'zaehlt ab Beginn von manuell');
 $b->device = device(3, 1004000, 7);
 $b->Update();
-assert($requested === [[777, 2]], 'Ziel im Ueberschuss stellt auf Automatisch');
-assert($b->GetValue('ImmediateTarget') === 0.0 && $b->GetValue('Mode') === CfosLogic::MODE_SURPLUS);
+assert($requested === [[777, 2]], 'Ziel erreicht: Energie-Manager auf Ueberschuss');
+assert($b->GetValue('ImmediateTarget') === 0.0, 'Ziel zurueckgesetzt');
 $b->Update();
-assert(count($requested) === 1, 'nur einmal');
+assert(count($requested) === 1 && $b->GetValue('Mode') === CfosLogic::MODE_SURPLUS, 'nur einmal');
+
+// Modus folgt dem Energie-Manager, manuell gilt dessen Leistung
+$eoValue = 1;
+$b = box();
+$b->SetProperty('OptimizerMode', 777);
+$b->device = device(3, 1000000, 7);
+$b->Update();
+assert($b->GetValue('Mode') === CfosLogic::MODE_OFF, 'Aus');
+$b->take();
+$eoValue = 0;
+$b->RequestAction('TargetPower', 6900);
+assert($b->GetValue('Mode') === CfosLogic::MODE_IMMEDIATE, 'Manuell wird Sofort');
+assert(in_array('override_device&dev_id=E1&flags=c&mamps=10000', $b->take(), true), 'Leistung des Energie-Managers statt Sofort-Strom');
+$eoValue = 2;
+$b->Update();
+assert($b->GetValue('Mode') === CfosLogic::MODE_SURPLUS, 'Ueberschuss');
 
 // Maximum als Formel
 $b = box();

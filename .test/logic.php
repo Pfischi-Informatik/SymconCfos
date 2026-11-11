@@ -45,6 +45,13 @@ assert($L::wantedPhases(CfosLogic::MODE_IMMEDIATE, 0, 1) === 3);
 assert($L::wantedPhases(CfosLogic::MODE_OFF, 9000, 1) === 1);
 
 // Modus-Rueckfall
+assert($L::optimizerMode('Überschuss') === 1);
+assert($L::optimizerMode('Automatisch') === 1);
+assert($L::optimizerMode('Manuell') === 2);
+assert($L::optimizerMode('Aktiv') === 2);
+assert($L::optimizerMode('Inaktiv') === 0);
+assert($L::optimizerMode('Aus') === 0);
+assert($L::optimizerMode('???') === null);
 assert($L::nextMode(2, 3, 1, 0.0, 0.0) === 1);
 assert($L::nextMode(2, 3, 6, 0.0, 0.0) === 2);
 assert($L::nextMode(2, 3, 3, 5.0, 5.0) === 1);

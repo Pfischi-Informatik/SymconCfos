@@ -65,6 +65,20 @@ final class CfosLogic
         return $ma < $minMa ? 0 : min($ma, $maxMa);
     }
 
+    /** Modus des Energie-Managers nach Beschriftung, null = unbekannt. */
+    public static function optimizerMode(string $caption): ?int
+    {
+        $c = mb_strtolower(trim($caption));
+        foreach (['inaktiv' => self::MODE_OFF, 'inactive' => self::MODE_OFF, 'aus' => self::MODE_OFF, 'off' => self::MODE_OFF,
+            'auto' => self::MODE_SURPLUS, 'über' => self::MODE_SURPLUS, 'ueber' => self::MODE_SURPLUS, 'surplus' => self::MODE_SURPLUS,
+            'manu' => self::MODE_IMMEDIATE, 'aktiv' => self::MODE_IMMEDIATE, 'active' => self::MODE_IMMEDIATE, 'on' => self::MODE_IMMEDIATE] as $prefix => $mode) {
+            if (str_starts_with($c, $prefix)) {
+                return $mode;
+            }
+        }
+        return null;
+    }
+
     public static function command(int $mode, int $watts, int $immediateA, int $phases, float $voltage, int $minMa, int $maxMa): int
     {
         return match ($mode) {

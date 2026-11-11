@@ -28,9 +28,10 @@ Priorität stellst du im Energie-Manager selbst ein. Damit der Sollwert wirkt, m
 der Modus auf **Überschuss** stehen.
 
 Optional lässt sich in der Instanz die Variable „Modus“ dieses Geräts im Energie-Manager
-auswählen. Ist das kWh-Ziel erreicht oder endet Sofort durch Abstecken, setzt das Modul sie auf
-**Automatisch**. So lädt der Energie-Manager manuell mit fester Leistung, bis das
-Ziel erreicht ist.
+auswählen. Der Modus der Instanz folgt ihr dann: Überschuss → Überschuss, Aus → Aus,
+Manuell → Sofort mit der Leistung aus dem Energie-Manager (nicht dem Sofort-Strom).
+Ist das kWh-Ziel erreicht oder wird abgesteckt, stellt das Modul den Energie-Manager
+zurück auf Überschuss. Die Werte erkennt es an der Beschriftung (Profil oder Darstellung).
 
 ## Variablen
 
@@ -38,7 +39,7 @@ Ziel erreicht ist.
 |---|---|---|---|
 | Modus | | ja | Aus, Überschuss, Sofort; beim Abstecken zurück auf Überschuss |
 | Sofort-Strom | A | ja | Strom im Modus Sofort |
-| Sofort-kWh-Ziel | kWh | ja | 0 = kein Limit. Zählt ab dem Setzen, in jedem Modus. Erreicht: Ziel auf 0, Sofort zurück auf Überschuss, Energie-Manager auf Automatisch. Beim Abstecken wieder 0 |
+| Sofort-kWh-Ziel | kWh | ja | 0 = kein Limit. Wirkt nur in Sofort bzw. Energie-Manager manuell und zählt ab dessen Beginn oder dem Setzen. Erreicht: Ziel auf 0, Energie-Manager zurück auf Überschuss. Im Überschuss ohne Wirkung. Beim Abstecken wieder 0 |
 | Leistung (Soll) | W | ja | Vorgabe des Energie-Managers, begrenzt auf „Maximale Leistung“ der Instanz |
 | Leistung (Ist) | W | nein | Aktuelle Ladeleistung |
 | Strom L1 bis L3 | A | nein | Strom je Phase |
