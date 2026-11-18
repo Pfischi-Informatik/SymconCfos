@@ -17,8 +17,11 @@ kopieren und den Symcon-Dienst neu starten. Danach pro Ladepunkt eine Instanz
 2. Das Formular neu öffnen, den Ladepunkt wählen, das Admin-Passwort eintragen.
 3. Im cFos muss am Master das Lastmanagement aktiv sein. Die Begrenzung der
    Zuleitung rechnet der Charging Manager, auch wenn Symcon nicht läuft.
-4. Eigene Ladepunkt-Regeln im cFos und externe Steuerungen abschalten, sonst regeln
-   sie gegen das Modul.
+4. Bei jedem Ladepunkt die cFos-Ladepunkt-Regeln **dauerhaft** abschalten
+   (Ladepunkt → Charging Rules → „Disable charging rules“), nicht nur für die laufende
+   Ladung. Eine aktive Regel, z. B. „PV surplus“, pausiert die Box mit „Low power“,
+   egal was Symcon vorgibt. Das Modul kann die Regeln nicht selbst abschalten.
+   Externe Steuerungen ebenfalls abschalten, sonst regeln sie gegen das Modul.
 
 ### Energie-Manager
 
@@ -86,13 +89,18 @@ php -d zend.assertions=1 -d assert.exception=1 .test/live.php
 Mit `.test/live.php <host> <ladepunkt>` wird zusätzlich eine echte Box gelesen.
 Schaltende Befehle blockiert der Test immer.
 
-## Noch nicht am Fahrzeug getestet
+## Teststand
 
-Geprüft sind die Regeln an einer simulierten Box und das Lesen an einer echten
-Anlage (Firmware 2.12.7). Offen ist:
+Am Fahrzeug bestätigt (Firmware 2.12.7, Power Brain und EVracing als Fremd-Ladepunkt):
 
-1. Ob `mamps` wirkt, wie lange und ob es Ladepunkt-Regeln übersteuert.
-2. Ob `mamps` bei Fremd-Ladepunkten wirkt.
-3. Ob das `set_params`-Format für das Summenlimit stimmt und das Passwort braucht.
-4. Ob die Phasenumschaltung bei eingestecktem Fahrzeug sofort greift.
-5. Ob der Energie-Manager `RequestAction` auf der Soll-Variable auslöst.
+- `mamps` setzt den Ladestrom, auch beim Fremd-Ladepunkt, und braucht kein Passwort.
+- Der Energie-Manager löst `RequestAction` auf „Leistung (Soll)“ aus, auch manuell.
+- Aktive cFos-Ladepunkt-Regeln haben Vorrang vor `mamps`; `flags=E` schaltet sie
+  nicht ab (darum sendet das Modul es nicht mehr).
+
+Noch offen:
+
+1. Wie lange cFos eine `mamps`-Vorgabe hält (das Modul sendet sie alle 60 s neu).
+2. Ob das `set_params`-Format für das Summenlimit stimmt und das Passwort braucht.
+3. Ob die Phasenumschaltung bei eingestecktem Fahrzeug sofort greift.
+4. Laden aus (`flags=C`) und wieder an am Fahrzeug.

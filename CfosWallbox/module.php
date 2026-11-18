@@ -264,9 +264,6 @@ class cFosWallbox extends IPSModule
         }
 
         $dev = urlencode($this->ReadPropertyString('DevId'));
-        if ($last === -1 && $this->http("override_device&dev_id=$dev&flags=E") === null) {
-            return;
-        }
         $flags = $command === 0 ? 'flags=C' : "flags=c&mamps=$command";
         if ($this->http("override_device&dev_id=$dev&$flags") === null) {
             return; // LastCommand bleibt, der naechste Lauf sendet neu
